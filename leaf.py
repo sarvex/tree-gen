@@ -24,8 +24,6 @@ class Leaf(object):
     @classmethod
     def get_shape(cls, leaf_type, g_scale, scale, scale_x):
         """returns the base leaf shape mesh"""
-        u_v = []
-
         if leaf_type < 0:  # blossom
             if leaf_type < -3:  # out of range
                 leaf_type = -1
@@ -38,9 +36,7 @@ class Leaf(object):
 
         verts = shape[0]
         faces = shape[1]
-        if len(shape) == 3:
-            u_v = shape[2]
-
+        u_v = shape[2] if len(shape) == 3 else []
         for vert in verts:
             vert *= scale * g_scale
             vert.x *= scale_x

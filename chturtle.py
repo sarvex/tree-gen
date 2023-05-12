@@ -52,7 +52,7 @@ class CHTurtle(object):
             self.width = 0.0
 
     def __str__(self):
-        return 'Turtle at %s, direction %s, right %s' % (self.pos, self.dir, self.right)
+        return f'Turtle at {self.pos}, direction {self.dir}, right {self.right}'
 
     def turn_right(self, angle):
         """Turn the turtle right about the axis perpendicular to the direction

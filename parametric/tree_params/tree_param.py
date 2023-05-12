@@ -60,7 +60,9 @@ class TreeParam(object):
         filtered = {}
         for k, v in params.items():
             if k not in self.params:
-                sys.stdout.write('TreeGen :: Warning: Unrecognized name in configuration "{}"'.format(k))
+                sys.stdout.write(
+                    f'TreeGen :: Warning: Unrecognized name in configuration "{k}"'
+                )
                 sys.stdout.flush()
             else:
                 filtered[k] = v

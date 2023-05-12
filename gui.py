@@ -34,11 +34,10 @@ def _get_tree_types(self=None, context=None):
     files = [f.split('.')[0] for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files.remove('tree_param')
     # ex: ['ch_trees.parametric.tree_params.quaking_aspen', ...]
-    modules = ['{}.{}.{}'.format(addon_name, '.'.join(module_parts), f) for f in files]
+    modules = [f"{addon_name}.{'.'.join(module_parts)}.{f}" for f in files]
     # ex: 'Quaking Aspen'
     titles = [f.replace('_', ' ').title() for f in files]
-    enum_options = [(module, title, title) for module, title in zip(modules, titles)]
-    return enum_options
+    return [(module, title, title) for module, title in zip(modules, titles)]
 
 
 class TreeGen(bpy.types.Operator):
@@ -220,7 +219,10 @@ class TreeGen(bpy.types.Operator):
                 level_length = scene.tree_length_input[scene.tree_levels_input - 1]
 
                 if float(level_length) == 0.0:
-                    update_log('Hint: tree level ' + str(scene.tree_levels_input) + ' was ignored due to having a length of 0.0\n')
+                    update_log(
+                        f'Hint: tree level {str(scene.tree_levels_input)}'
+                        + ' was ignored due to having a length of 0.0\n'
+                    )
                     scene.tree_levels_input -= 1
 
                 else:
@@ -251,9 +253,8 @@ class TreeGen(bpy.types.Operator):
 
             success = True
 
-        # Reduce chance of Blender crashing when generation fails or the user does something ill-advised
         except Exception:
-            update_log('\n{}\n'.format(traceback.format_exc()))
+            update_log(f'\n{traceback.format_exc()}\n')
             update_log('Tree generation failed\n\n')
 
         if success:
@@ -277,13 +278,13 @@ class TreeGen(bpy.types.Operator):
         params = {}
         for name in param_names:
             try:
-                p = getattr(scene, 'tree_{}_input'.format(name))
+                p = getattr(scene, f'tree_{name}_input')
                 if str(type(p)) == "<class 'bpy_prop_array'>":
                     p = list(p)
                 if p is not None:
                     params[name] = deepcopy(p)
                 else:
-                    print('Error while parsing input: {} = {}'.format(name, p))
+                    print(f'Error while parsing input: {name} = {p}')
             except AttributeError:
                 pass  # Skip missing attributes, reverting to default
 
@@ -325,7 +326,7 @@ class TreeGenConvertToMesh(bpy.types.Operator):
             update_log('Conversion to mesh complete\n')
 
         except Exception:
-            update_log('\n{}\n'.format(traceback.format_exc()))
+            update_log(f'\n{traceback.format_exc()}\n')
             update_log('Conversion to mesh failed\n')
 
         return {'FINISHED'}
@@ -353,7 +354,7 @@ class TreeGenCreateLeafLODs(bpy.types.Operator):
             update_log('Leaf LOD creation complete\n\n')
 
         except Exception:
-            update_log('\n{}\n'.format(traceback.format_exc()))
+            update_log(f'\n{traceback.format_exc()}\n')
             update_log('Leaf LOD creation failed\n\n')
 
         return {'FINISHED'}
@@ -375,11 +376,11 @@ class TreeGenSaveFile(bpy.types.Operator):
             counter = 0
             save_location_no_ext = save_location[:-3]
             while os.path.isfile(save_location):
-                save_location = '{}_{}.py'.format(save_location_no_ext, counter)
+                save_location = f'{save_location_no_ext}_{counter}.py'
                 counter += 1
 
         with open(save_location, 'w') as output_file:
-            print('params = ' + pprint.pformat(params), file=output_file)
+            print(f'params = {pprint.pformat(params)}', file=output_file)
 
         parametric_items = _get_tree_types()
         bpy.types.Scene.custom_tree_load_params_input = bpy.props.EnumProperty(name="", items=parametric_items)
@@ -414,10 +415,10 @@ class TreeGenLoadParams(bpy.types.Operator):
                     value = 8  # default
                 value = str(value)
             try:
-                setattr(scene, 'tree_{}_input'.format(name), value)
+                setattr(scene, f'tree_{name}_input', value)
             except TypeError as ex:
                 exception = str(ex).replace('TypeError: bpy_struct: item.attr = val: ', '')
-                print('TreeGen :: Error while loading preset "{}": {}'.format(name, exception))
+                print(f'TreeGen :: Error while loading preset "{name}": {exception}')
 
         # Pre-fill render output path with relevant name
         scene.render_output_path_input = os.path.sep.join((_get_addon_path_details()[2], 'parametric', 'tree_params', mod_name.split('.')[-1].replace('.py', '') + '_render.png'))
@@ -499,7 +500,7 @@ class TreeGenCustomisePanel(bpy.types.Panel):
             if dropdown:
                 col = container.column()
                 cont = col.split(factor=0.5, align=True)
-                cont.label(text=label + ':')
+                cont.label(text=f'{label}:')
             else:
                 cont = container.row()
 
@@ -641,7 +642,7 @@ class TreeGenPanel(bpy.types.Panel):
         row = box.row()
         if scene.seed_input == 0:
             if scene.last_seed != 0:
-                row.label(text='Last seed: ' + str(scene.last_seed))
+                row.label(text=f'Last seed: {str(scene.last_seed)}')
                 box.row()
             else:
                 row.label(text='0 = random')

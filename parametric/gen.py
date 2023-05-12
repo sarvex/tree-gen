@@ -39,7 +39,7 @@ def rand_in_range(lower, upper):
 def calc_point_on_bezier(offset, start_point, end_point):
     """Evaluate Bezier curve at offset between bezier_spline_points start_point and end_point"""
     if offset < 0 or offset > 1:
-        raise Exception('Offset out of range: %s not between 0 and 1' % offset)
+        raise Exception(f'Offset out of range: {offset} not between 0 and 1')
 
     one_minus_offset = 1 - offset
 
@@ -53,7 +53,7 @@ def calc_point_on_bezier(offset, start_point, end_point):
 def calc_tangent_to_bezier(offset, start_point, end_point):
     """Calculate tangent to Bezier curve at offset between bezier_spline_points start_point and end_point"""
     if offset < 0 or offset > 1:
-        raise Exception('Offset out of range: %s not between 0 and 1' % offset)
+        raise Exception(f'Offset out of range: {offset} not between 0 and 1')
 
     one_minus_offset = 1 - offset
 
@@ -144,7 +144,7 @@ class Stem(object):
         return new_stem
 
     def __str__(self):
-        return '%s %s %s' % (self.length, self.offset, self.radius)
+        return f'{self.length} {self.offset} {self.radius}'
 
 
 class Tree(object):
@@ -208,12 +208,7 @@ class Tree(object):
                 # angle random in circle
                 theta = rand_in_range(0, 2 * pi)
                 pos = Vector([dis * cos(theta), dis * sin(theta), 0])
-                # test point against those already in array to ensure it will not intersect
-                point_m_ok = True
-                for point in array:
-                    if (point[0] - pos).magnitude < rad:
-                        point_m_ok = False
-                        break
+                point_m_ok = all((point[0] - pos).magnitude >= rad for point in array)
                 if point_m_ok:
                     point_ok = True
                     array.append((pos, theta))
@@ -226,7 +221,7 @@ class Tree(object):
         start_time = time.time()
 
         # Set up container objects and curves for each level
-        for level_depth, level_name in enumerate(['Trunk'] + ['Branches' + str(_) for _ in range(1, self.param.levels)]):
+        for level_depth, level_name in enumerate(['Trunk'] + [f'Branches{str(_)}' for _ in range(1, self.param.levels)]):
             level_curve = bpy.data.curves.new(level_name.lower(), type='CURVE')
             level_curve.dimensions = '3D'
             level_curve.resolution_u = self.param.curve_res[level_depth]
@@ -308,12 +303,11 @@ class Tree(object):
         blossom_faces = []
         blossom_index = 0
 
-        counter = 0
-        for leaf in self.leaves_array:
+        for counter, leaf in enumerate(self.leaves_array):
             # Update loading spinner periodically
             if counter % 500 == 0:
                 windman.progress_update(counter / 100)
-                update_log('\r-> {} leaves made, {} blossoms made'.format(leaf_index, blossom_index))
+                update_log(f'\r-> {leaf_index} leaves made, {blossom_index} blossoms made')
             if self.param.blossom_rate and random_random() < self.param.blossom_rate:
                 verts, faces = leaf.get_mesh(self.param.leaf_bend, base_blossom_shape, blossom_index)
                 blossom_verts.extend(verts)
@@ -324,8 +318,6 @@ class Tree(object):
                 leaf_verts.extend(verts)
                 leaf_faces.extend(faces)
                 leaf_index += 1
-            counter += 1
-
         # set up mesh object
         if leaf_index > 0:
             leaves = bpy.data.meshes.new('leaves')
@@ -333,19 +325,14 @@ class Tree(object):
             bpy.context.collection.objects.link(leaves_obj)
             leaves_obj.parent = self.tree_obj
             leaves.from_pydata(leaf_verts, (), leaf_faces)
-            # set up UVs for leaf polygons
-            leaf_uv = base_leaf_shape[2]
-
-            if leaf_uv:
+            if leaf_uv := base_leaf_shape[2]:
                 leaves.uv_layers.new(name="leavesUV")
                 uv_layer = leaves.uv_layers.active.data
 
-                for seg_ind in range(int(len(leaf_faces) / len(base_leaf_shape[1]))):
-                    vert_ind = 0
-                    for vert in leaf_uv:
+                for seg_ind in range(len(leaf_faces) // len(base_leaf_shape[1])):
+                    for vert_ind, vert in enumerate(leaf_uv):
                         uv_layer[seg_ind * len(leaf_uv) + vert_ind].uv = vert
-                        vert_ind += 1
-                        # leaves.validate()
+                                        # leaves.validate()
 
         if blossom_index > 0:
             blossom = bpy.data.meshes.new('blossom')

@@ -81,7 +81,7 @@ def convert_to_mesh(context):
     old_branches = [child for child in tree.children if (child.name.startswith('Trunk') or child.name.startswith('Branches'))
                                                          and str(type(child.data)) == "<class 'bpy.types.Curve'>"]
 
-    if len(old_branches) == 0:
+    if not old_branches:
         raise Exception('No branches found while converting to mesh')
 
     for old_branch in old_branches:
@@ -134,7 +134,7 @@ def generate_leaf_lods(context, level_count=3):
     for child in tree.children:
         if child.name.startswith('Leaves'):
             base_name = child.name
-            child.name = child.name + '_LOD0'
+            child.name = f'{child.name}_LOD0'
             original = child
             parent = child.parent
             break
@@ -156,7 +156,10 @@ def generate_leaf_lods(context, level_count=3):
         # Delete faces
         if new_leaf_count > 8:  # Prevent infinite loops
             amount_to_delete = leaf_count - new_leaf_count
-            indexes_to_delete = set(random.randint(0, leaf_count - 1) for _ in range(amount_to_delete))
+            indexes_to_delete = {
+                random.randint(0, leaf_count - 1)
+                for _ in range(amount_to_delete)
+            }
             while len(indexes_to_delete) < amount_to_delete:
                 indexes_to_delete.add(random.randint(0, leaf_count - 1))
 
@@ -166,8 +169,11 @@ def generate_leaf_lods(context, level_count=3):
             bmesh.ops.delete(new_leaf_data, geom=list(to_delete), context='FACES')
 
         # Create new leaves object and copy the new leaves data into it
-        lod_level_name = '_LOD' + str(level + 1)
-        new_leaves = bpy.data.objects.new(base_name + lod_level_name, bpy.data.meshes.new('leaves' + lod_level_name))
+        lod_level_name = f'_LOD{str(level + 1)}'
+        new_leaves = bpy.data.objects.new(
+            base_name + lod_level_name,
+            bpy.data.meshes.new(f'leaves{lod_level_name}'),
+        )
         new_leaf_data.to_mesh(new_leaves.data)
         new_leaf_data.free()
 
@@ -193,7 +199,11 @@ def render_tree(output_path):
     targets = None
     for obj in bpy.context.scene.objects:
         bpy.context.active_object.select_set(state=False)
-        targets = [obj] + [child for child in obj.children] if obj.name.startswith('Tree') else targets
+        targets = (
+            [obj] + list(obj.children)
+            if obj.name.startswith('Tree')
+            else targets
+        )
 
     if targets is None:
         print('Could not find a tree to render')
